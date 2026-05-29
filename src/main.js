@@ -34,12 +34,34 @@ const SECTION_COLORS = {
 const sim = new BMSSimulation();
 
 // Cache DOM Elements
-const elVoltageInput = document.getElementById('voltage-input');
-const elVoltageVal = document.getElementById('voltage-val');
-const elCurrentInput = document.getElementById('current-input');
-const elCurrentVal = document.getElementById('current-val');
-const elTempInput = document.getElementById('temp-input');
-const elTempVal = document.getElementById('temp-val');
+const elPresetSelect = document.getElementById('preset-select');
+const elModeSelect = document.getElementById('mode-select');
+
+// Battery Pack Configuration Inputs
+const elInputNs = document.getElementById('input-ns');
+const elInputNp = document.getElementById('input-np');
+const elInputCapacity = document.getElementById('input-capacity');
+const elInputSoh = document.getElementById('input-soh');
+const elInputCycles = document.getElementById('input-cycles');
+const elInputRi = document.getElementById('input-ri');
+
+// Cell Spec Thresholds Inputs
+const elInputCellNomV = document.getElementById('input-cell-nom-v');
+const elInputCellMaxV = document.getElementById('input-cell-max-v');
+const elInputCellMinV = document.getElementById('input-cell-min-v');
+const elInputCellChargeCurr = document.getElementById('input-cell-charge-curr');
+const elInputCellFastChargeCurr = document.getElementById('input-cell-fast-charge-curr');
+const elInputCellCvV = document.getElementById('input-cell-cv-v');
+const elInputCoulombicEff = document.getElementById('input-coulombic-eff');
+
+// Environmental & Power Sliders
+const elInputPowerDraw = document.getElementById('input-power-draw');
+const elValPowerDraw = document.getElementById('val-power-draw');
+const elInputRegenPower = document.getElementById('input-regen-power');
+const elValRegenPower = document.getElementById('val-regen-power');
+const elInputAmbientTemp = document.getElementById('input-ambient-temp');
+const elValAmbientTemp = document.getElementById('val-ambient-temp');
+const elInputSimSpeed = document.getElementById('input-sim-speed');
 
 const elBtnShortCircuit = document.getElementById('btn-short-circuit');
 const elBtnResetFuse = document.getElementById('btn-reset-fuse');
@@ -56,9 +78,17 @@ const elSystemStateBadge = document.getElementById('system-state-badge');
 const elLcdL1 = document.getElementById('lcd-l1');
 const elLcdL2 = document.getElementById('lcd-l2');
 
+// Telemetry & Pack Cards
 const elSoCValue = document.getElementById('soc-value');
 const elSoCMode = document.getElementById('soc-mode');
 const elSoCBar = document.getElementById('soc-bar');
+
+const elSohValue = document.getElementById('soh-value');
+const elPackConfigText = document.getElementById('pack-config-text');
+const elSohBar = document.getElementById('soh-bar');
+const elValPackCap = document.getElementById('val-pack-cap');
+const elValPackRes = document.getElementById('val-pack-res');
+
 const elPowerValue = document.getElementById('power-value');
 const elTempDisplayVal = document.getElementById('temp-display-val');
 const elMosfetTemp = document.getElementById('mosfet-temp');
@@ -80,11 +110,15 @@ const elAdc2Rntc = document.getElementById('adc2-rntc');
 const elAdc2Calc = document.getElementById('adc2-calc');
 const elAdc2Bar = document.getElementById('adc2-bar');
 
-// Safety Flags
+// Safety Flags & Labels
 const elFlagOv = document.getElementById('flag-ov').querySelector('.flag-led');
+const elLabelOv = document.getElementById('label-ov');
 const elFlagUv = document.getElementById('flag-uv').querySelector('.flag-led');
+const elLabelUv = document.getElementById('label-uv');
 const elFlagOc = document.getElementById('flag-oc').querySelector('.flag-led');
+const elLabelOc = document.getElementById('label-oc');
 const elFlagOt = document.getElementById('flag-ot').querySelector('.flag-led');
+const elLabelOt = document.getElementById('label-ot');
 const elFlagFuse = document.getElementById('flag-fuse').querySelector('.flag-led');
 const elFlagCharging = document.getElementById('flag-charging').querySelector('.flag-led');
 
@@ -660,10 +694,8 @@ function updateTraceParticles(simData, dt) {
   traceParticles.forEach(tp => {
     let current = 0.0;
     
-    if (tp.currentKey === 'charge_flow') {
+    if (tp.currentKey === 'charge_flow' || tp.currentKey === 'power_flow') {
       current = simData.fuseIntact ? simData.mcuCurrent : 0.0;
-    } else if (tp.currentKey === 'power_flow') {
-      current = simData.fuseIntact ? simData.inputCurrent : 0.0;
     } else if (tp.currentKey === 'control_flow') {
       current = simData.fuseIntact ? simData.mosfetDutyCycle * 5.0 : 0.0;
     } else if (tp.currentKey === 'analog_adc0' || tp.currentKey === 'analog_adc1' || tp.currentKey === 'analog_adc2') {
@@ -672,13 +704,13 @@ function updateTraceParticles(simData, dt) {
       current = simData.fuseIntact ? 1.0 : 0.0; // standard constant current
     }
 
-    const speed = current * 0.05; 
+    // Adaptive speed scaling so high currents flow faster, but don't blur excessively
+    const speed = Math.sign(current) * Math.min(3.0, Math.pow(Math.abs(current), 0.5) * 0.15); 
     const points = tp.points;
     const numSegs = points.length - 1;
 
     // Toggle particle rendering based on settings and live fuse status
     tp.group.visible = glowEnabled && simData.fuseIntact && Math.abs(current) > 0.05;
-
     // Adjust line wire colors to reflect blown state
     if (!simData.fuseIntact) {
       tp.lineMesh.material.color.setHex(0x22222b);
@@ -688,11 +720,11 @@ function updateTraceParticles(simData, dt) {
 
     // Set particle color matching state
     let particleColor = 0xffffff;
-    if (current < -0.1) {
+    if (current < -0.5) {
       particleColor = 0x00ffcc; // Cyan pulses (Charging)
-    } else if (current > 10.0) {
-      particleColor = 0xff4444; // Red pulses (High current/short)
-    } else {
+    } else if (current > 100.0 || simData.systemState === 'TRIPPED') {
+      particleColor = 0xff4444; // Red pulses (High current/danger)
+    } else if (current >= 0.5) {
       particleColor = 0xfff066; // Yellow pulses (discharging)
     }
 
@@ -714,37 +746,99 @@ function updateTraceParticles(simData, dt) {
 }
 
 // ─── 7. UI Controls & Data Bindings ────────────────────────────────────────────
-elVoltageInput.addEventListener('input', (e) => {
-  const val = parseFloat(e.target.value);
-  sim.inputVoltage = val;
-  elVoltageVal.textContent = `${val.toFixed(1)} V`;
+function syncInputsFromSim() {
+  elPresetSelect.value = sim.activePreset;
+  elModeSelect.value = sim.mode;
+  
+  elInputNs.value = sim.seriesCells;
+  elInputNp.value = sim.parallelCells;
+  elInputCapacity.value = sim.capacityAh;
+  elInputSoh.value = sim.sohPercentage.toFixed(1);
+  elInputCycles.value = Math.round(sim.cycleCount);
+  elInputRi.value = sim.cellInternalResistance.toFixed(3);
+  
+  elInputCellNomV.value = sim.nomCellVoltage.toFixed(2);
+  elInputCellMaxV.value = sim.maxCellVoltage.toFixed(2);
+  elInputCellMinV.value = sim.minCellVoltage.toFixed(2);
+  elInputCellChargeCurr.value = sim.chargeCurrentLimit.toFixed(1);
+  elInputCellFastChargeCurr.value = sim.fastChargeCurrentLimit.toFixed(1);
+  elInputCellCvV.value = sim.cvVoltageLimit.toFixed(2);
+  elInputCoulombicEff.value = sim.coulombicEfficiency.toFixed(2);
+
+  elInputPowerDraw.value = sim.powerDraw;
+  elValPowerDraw.textContent = `${sim.powerDraw} W`;
+  elInputRegenPower.value = sim.regenPower;
+  elValRegenPower.textContent = `${sim.regenPower} W`;
+  
+  elInputAmbientTemp.value = sim.ambientTemp;
+  elValAmbientTemp.textContent = `${sim.ambientTemp.toFixed(1)} °C`;
+  
+  elInputSimSpeed.value = sim.simSpeed;
+}
+
+function bindInput(el, prop, isFloat = true, onChange = null) {
+  if (!el) return;
+  el.addEventListener('input', (e) => {
+    let val = isFloat ? parseFloat(e.target.value) : parseInt(e.target.value);
+    if (!isNaN(val)) {
+      sim[prop] = val;
+      sim.recalculatePackMetrics();
+      if (onChange) onChange(val);
+    }
+  });
+}
+
+// Bind Inputs
+bindInput(elInputNs, 'seriesCells', false);
+bindInput(elInputNp, 'parallelCells', false);
+bindInput(elInputCapacity, 'capacityAh');
+bindInput(elInputSoh, 'sohPercentage');
+bindInput(elInputCycles, 'cycleCount');
+bindInput(elInputRi, 'cellInternalResistance');
+
+bindInput(elInputCellNomV, 'nomCellVoltage');
+bindInput(elInputCellMaxV, 'maxCellVoltage');
+bindInput(elInputCellMinV, 'minCellVoltage');
+bindInput(elInputCellChargeCurr, 'chargeCurrentLimit');
+bindInput(elInputCellFastChargeCurr, 'fastChargeCurrentLimit');
+bindInput(elInputCellCvV, 'cvVoltageLimit');
+bindInput(elInputCoulombicEff, 'coulombicEfficiency');
+
+bindInput(elInputPowerDraw, 'powerDraw', true, (val) => {
+  elValPowerDraw.textContent = `${val} W`;
+});
+bindInput(elInputRegenPower, 'regenPower', true, (val) => {
+  elValRegenPower.textContent = `${val} W`;
+});
+bindInput(elInputAmbientTemp, 'ambientTemp', true, (val) => {
+  elValAmbientTemp.textContent = `${val.toFixed(1)} °C`;
 });
 
-elCurrentInput.addEventListener('input', (e) => {
-  const val = parseFloat(e.target.value);
-  sim.inputCurrent = val;
-  elCurrentVal.textContent = `${val.toFixed(1)} A`;
+// Dropdowns
+elPresetSelect.addEventListener('change', (e) => {
+  sim.loadPreset(e.target.value);
+  syncInputsFromSim();
 });
 
-elTempInput.addEventListener('input', (e) => {
-  const val = parseFloat(e.target.value);
-  sim.inputTemperature = val;
-  elTempVal.textContent = `${val.toFixed(1)} °C`;
+elModeSelect.addEventListener('change', (e) => {
+  sim.mode = e.target.value;
+});
+
+elInputSimSpeed.addEventListener('change', (e) => {
+  sim.simSpeed = parseInt(e.target.value);
 });
 
 // Fault Buttons
 elBtnShortCircuit.addEventListener('click', () => {
   sim.triggerShortCircuit();
-  elCurrentInput.value = 55.0;
-  elCurrentVal.textContent = "55.0 A";
+  elModeSelect.value = 'DISCHARGE';
   elBtnResetFuse.disabled = false;
   elBtnShortCircuit.disabled = true;
 });
 
 elBtnResetFuse.addEventListener('click', () => {
   sim.replaceFuse();
-  elCurrentInput.value = 0.0;
-  elCurrentVal.textContent = "0.0 A";
+  elModeSelect.value = 'IDLE';
   elBtnResetFuse.disabled = true;
   elBtnShortCircuit.disabled = false;
 });
@@ -752,6 +846,9 @@ elBtnResetFuse.addEventListener('click', () => {
 elBtnResetSoC.addEventListener('click', () => {
   sim.resetSoC();
 });
+
+// Initialize UI from Simulation
+syncInputsFromSim();
 
 // Visual Controls Toggles
 elToggleLabels.addEventListener('change', (e) => {
@@ -1062,6 +1159,13 @@ function updateHUD(simData) {
   elSoCValue.textContent = `${simData.socPercentage.toFixed(1)}%`;
   elSoCBar.style.width = `${simData.socPercentage}%`;
 
+  // Sync Pack Health Card
+  if (elSohValue) elSohValue.textContent = `${simData.sohPercentage.toFixed(1)}%`;
+  if (elPackConfigText) elPackConfigText.textContent = `${simData.seriesCells}S x ${simData.parallelCells}P`;
+  if (elSohBar) elSohBar.style.width = `${simData.sohPercentage}%`;
+  if (elValPackCap) elValPackCap.textContent = `${simData.packCapacityAh.toFixed(1)} Ah`;
+  if (elValPackRes) elValPackRes.textContent = `${simData.packResistance.toFixed(4)} Ω`;
+
   if (simData.mcuCurrent < 0) {
     elSoCMode.textContent = 'Constant Current Phase';
     elPowerValue.textContent = `-${Math.abs(simData.mcuVoltage * simData.mcuCurrent).toFixed(1)} W`;
@@ -1086,7 +1190,7 @@ function updateHUD(simData) {
   // 4. ADC metrics lists
   elAdc0Raw.textContent = simData.adc0Raw;
   elAdc0Vin.textContent = `${simData.vDividerOut.toFixed(2)}V`;
-  elAdc0Calc.textContent = `${simData.mcuVoltage.toFixed(1)}V`;
+  elAdc0Calc.textContent = `${simData.mcuVoltage.toFixed(1)}V (${(simData.mcuVoltage / simData.seriesCells).toFixed(2)}V/cell)`;
   elAdc0Bar.style.width = `${(simData.adc0Raw / 1023) * 100}%`;
 
   elAdc1Raw.textContent = simData.adc1Raw;
@@ -1100,11 +1204,19 @@ function updateHUD(simData) {
   elAdc2Calc.textContent = `${simData.mcuTemperature.toFixed(1)}°C`;
   elAdc2Bar.style.width = `${(simData.adc2Raw / 1023) * 100}%`;
 
-  // 5. Safety Flags LEDs
+  // 5. Safety Flags LEDs & Dynamic Labels
   setLedClass(elFlagOv, simData.flagOverVoltage, 'red');
+  if (elLabelOv) elLabelOv.textContent = `Over-Voltage (>${(simData.packMaxVoltage * 1.02).toFixed(1)}V)`;
+
   setLedClass(elFlagUv, simData.flagUnderVoltage, 'red');
+  if (elLabelUv) elLabelUv.textContent = `Under-Voltage (<${(simData.packMinVoltage * 0.98).toFixed(1)}V)`;
+
   setLedClass(elFlagOc, simData.flagOverCurrent, 'red');
+  if (elLabelOc) elLabelOc.textContent = `Over-Current (>${simData.fastChargeCurrentLimit.toFixed(0)}A)`;
+
   setLedClass(elFlagOt, simData.flagOverTemp, 'red');
+  // Temp threshold is static 55C
+  
   setLedClass(elFlagFuse, simData.fuseIntact, 'green', true); 
   setLedClass(elFlagCharging, simData.flagCharging, 'green');
 }

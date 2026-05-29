@@ -30,42 +30,121 @@
   <!-- Left Sidebar: Simulation Controls -->
   <aside id="simulation-panel" class="panel-left">
     <h2>Simulation Controls</h2>
+    
+    <!-- Profile & Mode Selector -->
     <div class="control-group">
-      <div class="slider-header">
-        <label for="voltage-input">Battery Voltage</label>
-        <span id="voltage-val">12.0 V</span>
+      <h3>Profile &amp; Mode</h3>
+      <div class="control-row" style="margin-bottom: 8px;">
+        <label for="preset-select" style="font-size: 0.78rem; color: var(--text-dim); display: block; margin-bottom: 4px;">Preset Profile</label>
+        <select id="preset-select" class="bms-select">
+          <option value="High Performance">High Performance</option>
+          <option value="Standard Performance">Standard Performance</option>
+          <option value="Custom Extreme">Custom Extreme</option>
+        </select>
       </div>
-      <input type="range" id="voltage-input" min="9.0" max="15.0" step="0.1" value="12.0" class="bms-slider">
-      <div class="slider-ticks">
-        <span>9V (UV)</span>
-        <span>12V (Nom)</span>
-        <span>15V (OV)</span>
+      <div class="control-row">
+        <label for="mode-select" style="font-size: 0.78rem; color: var(--text-dim); display: block; margin-bottom: 4px;">Simulation Mode</label>
+        <select id="mode-select" class="bms-select">
+          <option value="IDLE">Idle (Resting)</option>
+          <option value="DISCHARGE">Discharging (Load)</option>
+          <option value="CHARGE_STD">Standard Charging</option>
+          <option value="CHARGE_FAST">Fast Charging</option>
+          <option value="REGEN">Regenerative Braking</option>
+        </select>
       </div>
     </div>
 
+    <!-- Battery Pack Configuration -->
     <div class="control-group">
-      <div class="slider-header">
-        <label for="current-input">Load / Charger Current</label>
-        <span id="current-val">2.0 A</span>
+      <h3>Battery Pack Config</h3>
+      <div class="input-row">
+        <label for="input-ns">Series Cells (Ns)</label>
+        <input type="number" id="input-ns" class="bms-input" min="3" max="120" value="96">
       </div>
-      <input type="range" id="current-input" min="-10.0" max="55.0" step="0.5" value="2.0" class="bms-slider">
-      <div class="slider-ticks">
-        <span>-10A (Charge)</span>
-        <span>0A (Idle)</span>
-        <span>55A (Overload)</span>
+      <div class="input-row">
+        <label for="input-np">Parallel Cells (Np)</label>
+        <input type="number" id="input-np" class="bms-input" min="1" max="20" value="4">
+      </div>
+      <div class="input-row">
+        <label for="input-capacity">Cell Capacity (Ah)</label>
+        <input type="number" id="input-capacity" class="bms-input" min="1" max="300" step="0.5" value="100">
+      </div>
+      <div class="input-row">
+        <label for="input-soh">State of Health (%)</label>
+        <input type="number" id="input-soh" class="bms-input" min="50" max="100" step="0.5" value="98">
+      </div>
+      <div class="input-row">
+        <label for="input-cycles">Cycle Count</label>
+        <input type="number" id="input-cycles" class="bms-input" min="0" max="10000" value="120">
+      </div>
+      <div class="input-row">
+        <label for="input-ri">Cell Resistance (Ω)</label>
+        <input type="number" id="input-ri" class="bms-input" min="0.001" max="1.0" step="0.001" value="0.05">
       </div>
     </div>
 
+    <!-- Battery Cell Specs -->
     <div class="control-group">
-      <div class="slider-header">
-        <label for="temp-input">Cell Temperature</label>
-        <span id="temp-val">25.0 °C</span>
+      <h3>Cell Spec Thresholds</h3>
+      <div class="input-row">
+        <label for="input-cell-nom-v">Nominal Cell (V)</label>
+        <input type="number" id="input-cell-nom-v" class="bms-input" min="1.0" max="5.0" step="0.1" value="3.7">
       </div>
-      <input type="range" id="temp-input" min="-20.0" max="75.0" step="0.5" value="25.0" class="bms-slider">
-      <div class="slider-ticks">
-        <span>-20°C</span>
-        <span>25°C</span>
-        <span>75°C (Cutoff)</span>
+      <div class="input-row">
+        <label for="input-cell-max-v">Max Cell (V)</label>
+        <input type="number" id="input-cell-max-v" class="bms-input" min="1.0" max="5.0" step="0.05" value="4.2">
+      </div>
+      <div class="input-row">
+        <label for="input-cell-min-v">Min Cell (V)</label>
+        <input type="number" id="input-cell-min-v" class="bms-input" min="1.0" max="5.0" step="0.05" value="3.0">
+      </div>
+      <div class="input-row">
+        <label for="input-cell-charge-curr">Charge Limit (A)</label>
+        <input type="number" id="input-cell-charge-curr" class="bms-input" min="0.1" max="200" step="0.5" value="25.0">
+      </div>
+      <div class="input-row">
+        <label for="input-cell-fast-charge-curr">Fast Charge (A)</label>
+        <input type="number" id="input-cell-fast-charge-curr" class="bms-input" min="0.1" max="500" step="0.5" value="80.0">
+      </div>
+      <div class="input-row">
+        <label for="input-cell-cv-v">CV Voltage (V)</label>
+        <input type="number" id="input-cell-cv-v" class="bms-input" min="1.0" max="5.0" step="0.05" value="4.2">
+      </div>
+      <div class="input-row">
+        <label for="input-coulombic-eff">Coulombic Eff.</label>
+        <input type="number" id="input-coulombic-eff" class="bms-input" min="0.5" max="1.0" step="0.01" value="0.97">
+      </div>
+    </div>
+
+    <!-- Environmental & Power Settings -->
+    <div class="control-group">
+      <h3>Environment &amp; Load</h3>
+      <div class="slider-header">
+        <label for="input-power-draw">Power Draw (Load)</label>
+        <span id="val-power-draw">4500 W</span>
+      </div>
+      <input type="range" id="input-power-draw" min="0" max="50000" step="500" value="4500" class="bms-slider">
+      
+      <div class="slider-header" style="margin-top: 10px;">
+        <label for="input-regen-power">Regen Power</label>
+        <span id="val-regen-power">1500 W</span>
+      </div>
+      <input type="range" id="input-regen-power" min="0" max="10000" step="100" value="1500" class="bms-slider">
+
+      <div class="slider-header" style="margin-top: 10px;">
+        <label for="input-ambient-temp">Ambient Temp</label>
+        <span id="val-ambient-temp">25.0 °C</span>
+      </div>
+      <input type="range" id="input-ambient-temp" min="-20.0" max="60.0" step="0.5" value="25.0" class="bms-slider">
+
+      <div class="control-row" style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+        <label for="input-sim-speed" style="font-size: 0.78rem; color: var(--text-dim);">Sim Speed</label>
+        <select id="input-sim-speed" class="bms-select" style="width: 130px;">
+          <option value="1">1x (Realtime)</option>
+          <option value="2">2x Speed</option>
+          <option value="5">5x Speed</option>
+          <option value="10">10x Speed</option>
+        </select>
       </div>
     </div>
 
@@ -73,7 +152,7 @@
       <h3>Fault Injection</h3>
       <div class="buttons-grid">
         <button id="btn-short-circuit" class="btn btn-danger">Trigger Short Circuit</button>
-        <button id="btn-reset-fuse" class="btn btn-warning" disabled>Replace Fuse (10A)</button>
+        <button id="btn-reset-fuse" class="btn btn-warning" disabled>Replace Fuse</button>
         <button id="btn-reset-soc" class="btn btn-secondary">Reset SoC Estimation</button>
       </div>
     </div>
@@ -138,6 +217,22 @@
           </div>
           <div class="soc-bar-container">
             <div id="soc-bar" class="soc-bar" style="width: 78.4%"></div>
+          </div>
+        </div>
+
+        <!-- Battery Pack Health Card -->
+        <div class="telemetry-card">
+          <div class="card-label">Battery Pack Health</div>
+          <div class="card-value-container">
+            <span id="soh-value" class="card-value">98.0%</span>
+            <span class="card-subtext" id="pack-config-text">96S x 4P</span>
+          </div>
+          <div class="soc-bar-container" style="background: rgba(255, 255, 255, 0.05);">
+            <div id="soh-bar" class="soc-bar" style="width: 98.0%; background: linear-gradient(90deg, var(--green) 0%, var(--accent) 100%);"></div>
+          </div>
+          <div class="adc-metrics" style="margin-top: 8px; font-size: 0.7rem; display: flex; justify-content: space-between;">
+            <span>Capacity: <strong id="val-pack-cap">400.0 Ah</strong></span>
+            <span>R_pack: <strong id="val-pack-res">1.20 Ω</strong></span>
           </div>
         </div>
 
@@ -216,19 +311,19 @@
     <div class="flags-container">
       <div class="flag-indicator" id="flag-ov">
         <div class="flag-led gray"></div>
-        <span class="flag-label">Over-Voltage (&gt;13.5V)</span>
+        <span class="flag-label" id="label-ov">Over-Voltage</span>
       </div>
       <div class="flag-indicator" id="flag-uv">
         <div class="flag-led gray"></div>
-        <span class="flag-label">Under-Voltage (&lt;10.8V)</span>
+        <span class="flag-label" id="label-uv">Under-Voltage</span>
       </div>
       <div class="flag-indicator" id="flag-oc">
         <div class="flag-led gray"></div>
-        <span class="flag-label">Over-Current (&gt;10A chg, &gt;50A dchg)</span>
+        <span class="flag-label" id="label-oc">Over-Current</span>
       </div>
       <div class="flag-indicator" id="flag-ot">
         <div class="flag-led gray"></div>
-        <span class="flag-label">Thermal Cutoff (&gt;55°C)</span>
+        <span class="flag-label" id="label-ot">Thermal Cutoff (&gt;55°C)</span>
       </div>
       <div class="flag-indicator" id="flag-fuse">
         <div class="flag-led green"></div>
