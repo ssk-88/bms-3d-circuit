@@ -236,6 +236,33 @@
           </div>
         </div>
 
+        <!-- Thermal Dynamics Diagnostics -->
+        <div class="telemetry-card">
+          <div class="card-label">Thermal Dynamics</div>
+          <div class="adc-metrics" style="margin-top: 6px; font-size: 0.7rem; display: flex; flex-direction: column; gap: 4px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span>Ambient Temp:</span>
+              <strong id="val-ambient-temp-telemetry">25.0 °C</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Pack Temp:</span>
+              <strong id="val-pack-temp-telemetry">25.0 °C</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Joule Heat (I²R):</span>
+              <strong id="val-joule-heat" class="text-red">0.0 W</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Heat Dissipated:</span>
+              <strong id="val-convection-cooling" class="text-green">0.0 W</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Net Heat Rate:</span>
+              <strong id="val-heat-rate">0.0 W</strong>
+            </div>
+          </div>
+        </div>
+
         <div class="telemetry-card-half">
           <div class="card-label">Power Output</div>
           <div id="power-value" class="card-value text-green">24.0 W</div>

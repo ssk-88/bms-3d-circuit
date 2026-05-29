@@ -89,6 +89,12 @@ const elSohBar = document.getElementById('soh-bar');
 const elValPackCap = document.getElementById('val-pack-cap');
 const elValPackRes = document.getElementById('val-pack-res');
 
+const elValAmbientTempTelemetry = document.getElementById('val-ambient-temp-telemetry');
+const elValPackTempTelemetry = document.getElementById('val-pack-temp-telemetry');
+const elValJouleHeat = document.getElementById('val-joule-heat');
+const elValConvectionCooling = document.getElementById('val-convection-cooling');
+const elValHeatRate = document.getElementById('val-heat-rate');
+
 const elPowerValue = document.getElementById('power-value');
 const elTempDisplayVal = document.getElementById('temp-display-val');
 const elMosfetTemp = document.getElementById('mosfet-temp');
@@ -1165,6 +1171,18 @@ function updateHUD(simData) {
   if (elSohBar) elSohBar.style.width = `${simData.sohPercentage}%`;
   if (elValPackCap) elValPackCap.textContent = `${simData.packCapacityAh.toFixed(1)} Ah`;
   if (elValPackRes) elValPackRes.textContent = `${simData.packResistance.toFixed(4)} Ω`;
+
+  // Sync Thermal Dynamics Card
+  if (elValAmbientTempTelemetry) elValAmbientTempTelemetry.textContent = `${simData.ambientTemp.toFixed(1)} °C`;
+  if (elValPackTempTelemetry) elValPackTempTelemetry.textContent = `${simData.packTemp.toFixed(1)} °C`;
+  if (elValJouleHeat) elValJouleHeat.textContent = `${simData.jouleHeating.toFixed(1)} W`;
+  if (elValConvectionCooling) elValConvectionCooling.textContent = `${simData.convectionCooling.toFixed(1)} W`;
+  if (elValHeatRate) {
+    const netRate = simData.netHeatRate;
+    const rateSign = netRate > 0.05 ? '+' : '';
+    elValHeatRate.textContent = `${rateSign}${netRate.toFixed(1)} W`;
+    elValHeatRate.className = netRate > 0.05 ? 'text-red' : (netRate < -0.05 ? 'text-green' : '');
+  }
 
   if (simData.mcuCurrent < 0) {
     elSoCMode.textContent = 'Constant Current Phase';

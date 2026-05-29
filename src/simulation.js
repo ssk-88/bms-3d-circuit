@@ -90,6 +90,9 @@ export class BMSSimulation {
         // Thermal properties
         this.thermalCapacity = 12000.0; // J/K thermal mass of pack
         this.heatDissipationCoeff = 3.5; // W/K to ambient
+        this.jouleHeating = 0.0;
+        this.convectionCooling = 0.0;
+        this.netHeatRate = 0.0;
 
         // Hardware safety
         this.fuseIntact = true;
@@ -217,6 +220,9 @@ export class BMSSimulation {
             this.packVoltage = 0.0;
             this.mosfetDutyCycle = 0.0;
             this.mosfetPower = 0.0;
+            this.jouleHeating = 0.0;
+            this.convectionCooling = this.heatDissipationCoeff * (this.packTemp - this.ambientTemp);
+            this.netHeatRate = -this.convectionCooling;
             
             // Heat cooling down back to ambient
             this.packTemp += (this.ambientTemp - this.packTemp) * (0.01 * dt);
@@ -381,13 +387,14 @@ export class BMSSimulation {
 
         // 7. THERMAL DYNAMICS MODEL
         // Q_generated = I^2 * R_pack
-        const jouleHeating = Math.pow(this.packCurrent, 2) * this.packResistance;
+        this.jouleHeating = Math.pow(this.packCurrent, 2) * this.packResistance;
         
         // Q_dissipated = h * A * (T_pack - T_ambient)
-        const convectionCooling = this.heatDissipationCoeff * (this.packTemp - this.ambientTemp);
+        this.convectionCooling = this.heatDissipationCoeff * (this.packTemp - this.ambientTemp);
+        this.netHeatRate = this.jouleHeating - this.convectionCooling;
         
         // dT = (Q_gen - Q_conv) * dt / C_thermal
-        const dTemp = (jouleHeating - convectionCooling) * dt / this.thermalCapacity;
+        const dTemp = this.netHeatRate * dt / this.thermalCapacity;
         this.packTemp += dTemp;
         
         // Clamp pack temperature to logical limits
