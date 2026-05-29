@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>BMS 3D Circuit — ATmega32 Controller Battery Management System</title>
+  <meta name="description" content="Interactive 3D circuit model and simulation of a Battery Management System using ATmega32 Controller"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/src/styles.css"/>
+</head>
+<body>
+  <!-- Three.js 3D Viewport Canvas -->
+  <canvas id="circuit-canvas"></canvas>
+
+  <!-- Top Bar -->
+  <header id="top-bar">
+    <div class="logo">
+      <span class="logo-icon">⚡</span>
+      <span class="logo-text">BMS-328P</span>
+      <span class="badge-system">ATmega32 Controller Hybrid SoC Estimator</span>
+    </div>
+    <div class="system-status-indicator">
+      <span class="status-label">State:</span>
+      <span id="system-state-badge" class="badge-state state-normal">NORMAL</span>
+    </div>
+  </header>
+
+  <!-- Left Sidebar: Simulation Controls -->
+  <aside id="simulation-panel" class="panel-left">
+    <h2>Simulation Controls</h2>
+    <div class="control-group">
+      <div class="slider-header">
+        <label for="voltage-input">Battery Voltage</label>
+        <span id="voltage-val">12.0 V</span>
+      </div>
+      <input type="range" id="voltage-input" min="9.0" max="15.0" step="0.1" value="12.0" class="bms-slider">
+      <div class="slider-ticks">
+        <span>9V (UV)</span>
+        <span>12V (Nom)</span>
+        <span>15V (OV)</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <div class="slider-header">
+        <label for="current-input">Load / Charger Current</label>
+        <span id="current-val">2.0 A</span>
+      </div>
+      <input type="range" id="current-input" min="-10.0" max="55.0" step="0.5" value="2.0" class="bms-slider">
+      <div class="slider-ticks">
+        <span>-10A (Charge)</span>
+        <span>0A (Idle)</span>
+        <span>55A (Overload)</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <div class="slider-header">
+        <label for="temp-input">Cell Temperature</label>
+        <span id="temp-val">25.0 °C</span>
+      </div>
+      <input type="range" id="temp-input" min="-20.0" max="75.0" step="0.5" value="25.0" class="bms-slider">
+      <div class="slider-ticks">
+        <span>-20°C</span>
+        <span>25°C</span>
+        <span>75°C (Cutoff)</span>
+      </div>
+    </div>
+
+    <div class="actions-panel">
+      <h3>Fault Injection</h3>
+      <div class="buttons-grid">
+        <button id="btn-short-circuit" class="btn btn-danger">Trigger Short Circuit</button>
+        <button id="btn-reset-fuse" class="btn btn-warning" disabled>Replace Fuse (10A)</button>
+        <button id="btn-reset-soc" class="btn btn-secondary">Reset SoC Estimation</button>
+      </div>
+    </div>
+
+    <div class="config-panel">
+      <h3>Visual Modes</h3>
+      <div class="toggle-control">
+        <label for="toggle-labels" class="toggle-label">Component Labels</label>
+        <input type="checkbox" id="toggle-labels" checked>
+      </div>
+      <div class="toggle-control">
+        <label for="toggle-traces" class="toggle-label">Circuit Traces</label>
+        <input type="checkbox" id="toggle-traces" checked>
+      </div>
+      <div class="toggle-control">
+        <label for="toggle-xray" class="toggle-label">X-Ray (PCB Glass)</label>
+        <input type="checkbox" id="toggle-xray">
+      </div>
+      <div class="toggle-control">
+        <label for="toggle-explode" class="toggle-label">Exploded View</label>
+        <input type="checkbox" id="toggle-explode">
+      </div>
+      <div class="toggle-control">
+        <label for="toggle-glow" class="toggle-label">Animate Current Flow</label>
+        <input type="checkbox" id="toggle-glow" checked>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Right Sidebar: Live Telemetry & Inspector -->
+  <aside id="telemetry-panel" class="panel-right">
+    <!-- Component Details Inspector (Fills upper part of sidebar if active) -->
+    <div id="inspector-section" class="inspector-box hidden">
+      <div class="inspector-header">
+        <h2 id="comp-name">Component Details</h2>
+        <button id="close-inspector" class="close-btn-inspector">&times;</button>
+      </div>
+      <div id="comp-ref" class="comp-ref">U3</div>
+      <div id="comp-details" class="comp-desc">Hover over or click a 3D component to inspect pins and parameters.</div>
+      <div id="comp-specs" class="comp-specs-list">Specs here</div>
+    </div>
+
+    <!-- Live System Telemetry (Always visible) -->
+    <div id="telemetry-section">
+      <h2>BMS Telemetry</h2>
+      
+      <!-- Monospace Virtual 16x2 LCD Character Display -->
+      <div class="lcd-bezel">
+        <div class="lcd-screen">
+          <div class="lcd-line" id="lcd-l1">SOC: 78.4%   STB</div>
+          <div class="lcd-line" id="lcd-l2">12.00V  2.00A 25C</div>
+        </div>
+        <div class="lcd-screen-label">16x2 I2C Display (Live Clone)</div>
+      </div>
+
+      <div class="telemetry-grid">
+        <div class="telemetry-card">
+          <div class="card-label">State of Charge</div>
+          <div class="card-value-container">
+            <span id="soc-value" class="card-value">78.4%</span>
+            <span class="card-subtext" id="soc-mode">OCV + Coulomb</span>
+          </div>
+          <div class="soc-bar-container">
+            <div id="soc-bar" class="soc-bar" style="width: 78.4%"></div>
+          </div>
+        </div>
+
+        <div class="telemetry-card-half">
+          <div class="card-label">Power Output</div>
+          <div id="power-value" class="card-value text-green">24.0 W</div>
+        </div>
+        <div class="telemetry-card-half">
+          <div class="card-label">Cell Temperature</div>
+          <div id="temp-display-val" class="card-value">25.0 °C</div>
+        </div>
+
+        <div class="telemetry-card-half">
+          <div class="card-label">MOSFET Heat</div>
+          <div id="mosfet-temp" class="card-value">26.5 °C</div>
+        </div>
+        <div class="telemetry-card-half">
+          <div class="card-label">MOSFET Gate</div>
+          <div id="mosfet-status" class="card-value text-green">100% PWM</div>
+        </div>
+      </div>
+
+      <h2>ATmega32 Controller ADC Nodes</h2>
+      <div class="adc-list">
+        <div class="adc-item">
+          <div class="adc-item-header">
+            <span class="adc-pin">ADC0 (PC0)</span>
+            <span class="adc-name">Voltage Divider</span>
+          </div>
+          <div class="adc-bar-container">
+            <div id="adc0-bar" class="adc-bar" style="width: 32%"></div>
+          </div>
+          <div class="adc-metrics">
+            <span>ADC: <strong id="adc0-raw">338</strong></span>
+            <span>Divider: <strong id="adc0-vin">1.09V</strong></span>
+            <span>Calc: <strong id="adc0-calc">12.0V</strong></span>
+          </div>
+        </div>
+
+        <div class="adc-item">
+          <div class="adc-item-header">
+            <span class="adc-pin">ADC1 (PC1)</span>
+            <span class="adc-name">Current Op-Amp</span>
+          </div>
+          <div class="adc-bar-container">
+            <div id="adc1-bar" class="adc-bar" style="width: 20%"></div>
+          </div>
+          <div class="adc-metrics">
+            <span>ADC: <strong id="adc1-raw">204</strong></span>
+            <span>Op-Amp: <strong id="adc1-vout">1.00V</strong></span>
+            <span>Calc: <strong id="adc1-calc">2.0A</strong></span>
+          </div>
+        </div>
+
+        <div class="adc-item">
+          <div class="adc-item-header">
+            <span class="adc-pin">ADC2 (PC2)</span>
+            <span class="adc-name">Temp Divider</span>
+          </div>
+          <div class="adc-bar-container">
+            <div id="adc2-bar" class="adc-bar" style="width: 50%"></div>
+          </div>
+          <div class="adc-metrics">
+            <span>ADC: <strong id="adc2-raw">512</strong></span>
+            <span>R_ntc: <strong id="adc2-rntc">10.0kΩ</strong></span>
+            <span>Calc: <strong id="adc2-calc">25.0°C</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Bottom Panel: Safety Protections -->
+  <footer id="safety-panel" class="panel-bottom">
+    <h3>Hardware & Software Safety Monitors</h3>
+    <div class="flags-container">
+      <div class="flag-indicator" id="flag-ov">
+        <div class="flag-led gray"></div>
+        <span class="flag-label">Over-Voltage (&gt;13.5V)</span>
+      </div>
+      <div class="flag-indicator" id="flag-uv">
+        <div class="flag-led gray"></div>
+        <span class="flag-label">Under-Voltage (&lt;10.8V)</span>
+      </div>
+      <div class="flag-indicator" id="flag-oc">
+        <div class="flag-led gray"></div>
+        <span class="flag-label">Over-Current (&gt;10A chg, &gt;50A dchg)</span>
+      </div>
+      <div class="flag-indicator" id="flag-ot">
+        <div class="flag-led gray"></div>
+        <span class="flag-label">Thermal Cutoff (&gt;55°C)</span>
+      </div>
+      <div class="flag-indicator" id="flag-fuse">
+        <div class="flag-led green"></div>
+        <span class="flag-label">Fuse Intact (10A)</span>
+      </div>
+      <div class="flag-indicator" id="flag-charging">
+        <div class="flag-led gray"></div>
+        <span class="flag-label">Charger Connected</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- View Controls overlay (Reset Camera) -->
+  <div id="view-controls">
+    <button id="btn-reset-cam" class="ctrl-btn-action" title="Reset Camera Location">🔄 Center Cam</button>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading">
+    <div class="loader-ring"></div>
+    <p>Compiling 3D BMS Circuit Assets...</p>
+  </div>
+
+  <!-- Main script -->
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
