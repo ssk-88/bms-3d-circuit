@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
-  <script type="module" crossorigin src="./assets/index-8Db_HISZ.js"></script>
+  <script type="module" crossorigin src="./assets/index-CFLz55Wa.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-OqXKLz8V.css">
 </head>
 <body>
@@ -234,6 +234,33 @@
           <div class="adc-metrics" style="margin-top: 8px; font-size: 0.7rem; display: flex; justify-content: space-between;">
             <span>Capacity: <strong id="val-pack-cap">400.0 Ah</strong></span>
             <span>R_pack: <strong id="val-pack-res">1.20 Ω</strong></span>
+          </div>
+        </div>
+
+        <!-- Thermal Dynamics Diagnostics -->
+        <div class="telemetry-card">
+          <div class="card-label">Thermal Dynamics</div>
+          <div class="adc-metrics" style="margin-top: 6px; font-size: 0.7rem; display: flex; flex-direction: column; gap: 4px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span>Ambient Temp:</span>
+              <strong id="val-ambient-temp-telemetry">25.0 °C</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Pack Temp:</span>
+              <strong id="val-pack-temp-telemetry">25.0 °C</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Joule Heat (I²R):</span>
+              <strong id="val-joule-heat" class="text-red">0.0 W</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Heat Dissipated:</span>
+              <strong id="val-convection-cooling" class="text-green">0.0 W</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>Net Heat Rate:</span>
+              <strong id="val-heat-rate">0.0 W</strong>
+            </div>
           </div>
         </div>
 
